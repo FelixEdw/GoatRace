@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>新春吉祥奔羊赛 — CNY Live Goat Race</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Shojumaru&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --font-display: 'Shojumaru', 'Ma Shan Zheng', cursive, system-ui, sans-serif;
+      --bg: #180306;
+      --panel: #2b060b;
+      --panel-2: #3d0911;
+      --border: rgba(255, 215, 102, 0.25);
+      --gold: #ffd166;
+      --gold-deep: #f59e0b;
+      --crimson: #b91c1c;
+      --silver: #e2e8f0;
+      --bronze: #fb923c;
+      --jade: #34d399;
+      --text: #fff8eb;
+      --muted: #f3c6b6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 25% 0%, #5c0a14 0%, var(--bg) 68%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* Top Bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 24px;
+      background: linear-gradient(90deg, rgba(61, 8, 15, 0.96), rgba(92, 12, 22, 0.96), rgba(61, 8, 15, 0.96));
+      border-bottom: 2px solid rgba(255, 209, 102, 0.45);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      filter: drop-shadow(0 2px 10px rgba(255, 209, 102, 0.4));
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .title-text h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: #ffe8a3;
+    }
+
+    .title-text span {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .hud-center {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(31, 4, 8, 0.72);
+      border: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.95rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pill strong {
+      color: var(--gold);
+    }
+
+    .timer-pill {
+      font-size: 1.2rem;
+      min-width: 120px;
+      justify-content: center;
+      border-color: rgba(255, 209, 102, 0.55);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 80ms ease, filter 120ms ease;
+    }
+
+    .btn:hover {
+      filter: brightness(1.14);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ffe082, #f59e0b);
+      color: #3a060b;
+      border: 1px solid #fff3c4;
+      font-weight: 900;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Main Stage */
+    .stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Decorative Lanterns */
+    .lantern-strip {
+      position: absolute;
+      top: -4px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 36px;
+      pointer-events: none;
+      z-index: 14;
+    }
+
+    .lantern-img {
+      height: 76px;
+      width: auto;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
+      animation: lanternSway 3.4s ease-in-out infinite alternate;
+      transform-origin: top center;
+    }
+
+    .lantern-img:nth-child(even) {
+      animation-delay: -1.6s;
+      height: 68px;
+    }
+
+    @keyframes lanternSway {
+      from { transform: rotate(-4deg); }
+      to { transform: rotate(4deg); }
+    }
+
+    /* Overlay Views */
+    .overlay-view {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: 24px;
+      z-index: 10;
+    }
+
+    .overlay-view.active {
+      display: flex;
+    }
+
+    #lobby-view {
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+      background:
+        radial-gradient(circle at 50% 25%, rgba(160, 20, 32, 0.45), rgba(24, 3, 6, 0.95) 75%);
+    }
+
+    .lobby-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 30px;
+      max-width: 1220px;
+      width: 100%;
+      margin: auto;
+      align-items: center;
+    }
+
+    .qr-card {
+      background: linear-gradient(180deg, #fffdf7 0%, #fef3c7 100%);
+      color: #450a0a;
+      border: 4px solid #fbbf24;
+      border-radius: 24px;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(251, 191, 36, 0.22);
+    }
+
+    .qr-angpow-corner {
+      position: absolute;
+      top: -18px;
+      right: -14px;
+      width: 58px;
+      height: auto;
+      transform: rotate(12deg);
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+    }
+
+    .qr-card img.qr-img {
+      width: 274px;
+      height: 274px;
+      display: block;
+      margin: 0 auto 12px;
+      border-radius: 12px;
+      border: 2px solid #f59e0b;
+    }
+
+    .qr-caption {
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #991b1b;
+    }
+
+    .room-code-big {
+      font-family: var(--font-display);
+      font-size: 2.35rem;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      margin: 4px 0;
+      color: #7f1d1d;
+    }
+
+    .join-url-text {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #78350f;
+      word-break: break-all;
+      background: rgba(245, 158, 11, 0.16);
+      padding: 8px 12px;
+      border-radius: 10px;
+    }
+
+    .lobby-info {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .lobby-hero-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .lobby-mascot {
+      width: 128px;
+      height: auto;
+      flex-shrink: 0;
+      filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5));
+      animation: mascotBounce 2.2s ease-in-out infinite;
+    }
+
+    @keyframes mascotBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .cny-badge {
+      display: inline-flex;
+      align-self: flex-start;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255, 209, 102, 0.15);
+      border: 1px solid rgba(255, 209, 102, 0.45);
+      color: var(--gold);
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+    }
+
+    .cny-badge img {
+      height: 20px;
+      width: auto;
+    }
+
+    .lobby-headline {
+      font-family: var(--font-display);
+      font-size: clamp(1.85rem, 3.1vw, 2.75rem);
+      font-weight: 400;
+      line-height: 1.15;
+      margin: 0;
+      letter-spacing: 0.01em;
+      color: #fff6db;
+      text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .ready-counter {
+      font-size: 1.7rem;
+      font-weight: 900;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ready-counter img {
+      height: 30px;
+      width: auto;
+    }
+
+    .duration-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: rgba(43, 6, 11, 0.9);
+      border: 1px solid var(--border);
+      padding: 14px 18px;
+      border-radius: 16px;
+    }
+
+    .duration-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .duration-btn.selected {
+      background: var(--gold);
+      color: #3a060b;
+      border-color: #fff3c4;
+      font-weight: 900;
+    }
+
+    .lobby-actions {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .btn-launch {
+      font-family: var(--font-display);
+      font-weight: 400;
+      padding: 15px 28px;
+      font-size: 1.12rem;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-launch img {
+      height: 26px;
+      width: auto;
+    }
+
+    /* Horizontal Incoming Player Ticker */
+    .ticker-wrap {
+      width: 100%;
+      overflow: hidden;
+      background: rgba(43, 6, 11, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .ticker-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      color: var(--gold);
+      white-space: nowrap;
+    }
+
+    .ticker-track {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .ticker-items {
+      display: inline-flex;
+      gap: 12px;
+      animation: tickerScroll 18s linear infinite;
+    }
+
+    .ticker-chip {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: #4b0c16;
+      border: 1px solid rgba(255, 209, 102, 0.3);
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #fff4d6;
+    }
+
+    @keyframes tickerScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Canvas Track */
+    #track-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Countdown Overlay */
+    #countdown-view {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: rgba(24, 3, 6, 0.78);
+      backdrop-filter: blur(4px);
+    }
+
+    .countdown-banner-img {
+      width: 260px;
+      height: auto;
+      filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+      animation: pulsePop 0.9s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulsePop {
+      from { transform: scale(0.97); }
+      to { transform: scale(1.04); }
+    }
+
+    .countdown-circle-row {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .countdown-cracker {
+      height: 82px;
+      width: auto;
+      filter: drop-shadow(0 6px 14px rgba(255, 180, 0, 0.4));
+    }
+
+    .countdown-circle {
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fde68a 0%, #f59e0b 55%, #b91c1c 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 90px rgba(251, 191, 36, 0.65);
+      border: 6px solid #fff3c4;
+    }
+
+    .countdown-num {
+      font-family: var(--font-display);
+      font-size: 5.2rem;
+      font-weight: 400;
+      line-height: 1;
+      color: #450a0a;
+    }
+
+    .countdown-label {
+      font-size: 0.88rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #450a0a;
+    }
+
+    /* Podium Overlay */
+    #podium-view {
+      align-items: center;
+      justify-content: center;
+      background: rgba(20, 2, 5, 0.88);
+      backdrop-filter: blur(8px);
+    }
+
+    .podium-card {
+      width: 100%;
+      max-width: 920px;
+      background: linear-gradient(180deg, #3b0810 0%, #240409 100%);
+      border: 2px solid rgba(255, 209, 102, 0.55);
+      border-radius: 24px;
+      padding: 24px 32px;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.72), 0 0 50px rgba(245, 158, 11, 0.2);
+    }
+
+    .podium-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .podium-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .podium-title-wrap img {
+      height: 52px;
+      width: auto;
+    }
+
+    .podium-header h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      color: #ffe8a3;
+    }
+
+    .podium-stand {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    .podium-step {
+      background: rgba(69, 10, 18, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px 14px;
+      text-align: center;
+    }
+
+    .podium-step.place-1 {
+      border: 2px solid #ffd166;
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.26), rgba(88, 12, 22, 0.92));
+      padding-top: 22px;
+      padding-bottom: 20px;
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.25);
+    }
+
+    .podium-step.place-2 {
+      border-color: rgba(226, 232, 240, 0.55);
+    }
+
+    .podium-step.place-3 {
+      border-color: rgba(251, 146, 60, 0.55);
+    }
+
+    .trophy-img {
+      height: 82px;
+      width: auto;
+      display: block;
+      margin: 0 auto 6px;
+      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+    }
+
+    .place-1 .trophy-img {
+      height: 98px;
+    }
+
+    .winner-name {
+      font-size: 1.22rem;
+      font-weight: 900;
+      margin: 4px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .winner-metrics {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .top10-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 16px;
+    }
+
+    .top10-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 209, 102, 0.14);
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="title-group">
+        <div class="logo">
+          <img src="/images/cny/goat-icon.png" alt="CNY Goat" />
+        </div>
+        <div class="title-text">
+          <h1>喜气洋洋奔羊赛 • CNY GOAT RACE</h1>
+          <span id="state-subtitle">候场 LOBBY</span>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <div class="pill">房间 ROOM <strong id="hud-room">----</strong></div>
+        <div class="pill">人数 GOATS <strong id="hud-players">0 / 200</strong></div>
+        <div class="pill timer-pill" id="hud-timer">00.0s</div>
+      </div>
+
+      <div class="controls">
+        <button id="mute-btn" class="btn" type="button">音效 ON</button>
+        <button id="start-btn" class="btn btn-primary" type="button">开赛 START</button>
+        <button id="reset-btn" class="btn" type="button" style="display: none;">大厅 LOBBY</button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="lantern-strip" aria-hidden="true">
+        <img class="lantern-img" src="/images/cny/lantern-ornate.png" alt="" />
+        <img class="lantern-img" src="/images/cny/lantern-plain.png" alt="" />
+        <img class="lantern-img" src="/images/cny/lantern-ornate.png" alt="" />
+        <img class="lantern-img" src="/images/cny/lantern-plain.png" alt="" />
+        <img class="lantern-img" src="/images/cny/lantern-ornate.png" alt="" />
+      </div>
+
+      <canvas id="track-canvas"></canvas>
+
+      <!-- Lobby Overlay -->
+      <section id="lobby-view" class="overlay-view active">
+        <div class="lobby-grid">
+          <div class="qr-card">
+            <img class="qr-angpow-corner" src="/images/cny/angpow-open.png" alt="" />
+            <img id="qr-image" class="qr-img" alt="Scan QR Code to Join" />
+            <div class="qr-caption">扫码加入 • SCAN TO JOIN</div>
+            <div id="lobby-room-code" class="room-code-big">----</div>
+            <div id="lobby-join-url" class="join-url-text">----</div>
+          </div>
+
+          <div class="lobby-info">
+            <div class="cny-badge">
+              <img src="/images/cny/coin-square.png" alt="" />
+              <span>新春特别赛 • YEAR OF THE GOAT</span>
+            </div>
+
+            <div class="lobby-hero-row">
+              <img class="lobby-mascot" src="/images/cny/goat-happy.png" alt="Lucky Goat Mascot" />
+              <h2 class="lobby-headline">扫码开跑！<br />SCAN &amp; RACE!</h2>
+            </div>
+
+            <div class="ready-counter">
+              <img src="/images/cny/coin-ingot.png" alt="" />
+              <span id="lobby-counter">0 / 200 READY</span>
+            </div>
+
+            <div class="duration-row">
+              <span style="font-weight: 700; color: var(--muted);">时长 TIME</span>
+              <button class="duration-btn" data-sec="30" type="button">30s</button>
+              <button class="duration-btn selected" data-sec="35" type="button">35s</button>
+              <button class="duration-btn" data-sec="40" type="button">40s</button>
+              <button class="duration-btn" data-sec="45" type="button">45s</button>
+            </div>
+
+            <div class="lobby-actions">
+              <button id="lobby-start-btn" class="btn btn-primary btn-launch" type="button">
+                <img src="/images/cny/firecracker-2.png" alt="" />
+                <span>开始比赛 START RACE</span>
+              </button>
+              <a id="open-play-link" class="btn" href="/play" target="_blank" rel="noopener">
+                测试手柄 TEST
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="ticker-wrap">
+          <span class="ticker-label">已加入 JOINED</span>
+          <div class="ticker-track">
+            <div id="ticker-items" class="ticker-items">
+              <span class="ticker-chip">等待玩家加入 • WAITING FOR PLAYERS</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Countdown Overlay -->
+      <section id="countdown-view" class="overlay-view">
+        <img class="countdown-banner-img" src="/images/cny/banner-ready.png" alt="准备!" />
+        <div class="countdown-circle-row">
+          <img class="countdown-cracker" src="/images/cny/firecracker-1.png" alt="" />
+          <div class="countdown-circle">
+            <div id="countdown-num" class="countdown-num">5</div>
+            <div class="countdown-label">READY</div>
+          </div>
+          <img class="countdown-cracker" src="/images/cny/firecracker-3.png" alt="" />
+        </div>
+      </section>
+
+      <!-- Podium Overlay -->
+      <section id="podium-view" class="overlay-view">
+        <div class="podium-card">
+          <div class="podium-header">
+            <div class="podium-title-wrap">
+              <img src="/images/cny/medal-first.png" alt="第一名" />
+              <h2>荣耀榜 • PODIUM</h2>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <span id="podium-summary" style="color: var(--muted); font-weight: 700;"></span>
+              <button id="podium-reset-btn" class="btn btn-primary" type="button">再来一局 PLAY AGAIN</button>
+            </div>
+          </div>
+
+          <div id="podium-stand" class="podium-stand"></div>
+          <div id="podium-top10" class="top10-grid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/host.js"></script>
+</body>
+</html>

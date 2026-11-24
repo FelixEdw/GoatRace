@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <title>CNY Goat Race — Controller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Shojumaru&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --font-display: 'Shojumaru', 'Ma Shan Zheng', cursive, system-ui, sans-serif;
+      --bg: #180306;
+      --surface: #2e060c;
+      --surface-2: #440a13;
+      --accent: #ffd166;
+      --accent-2: #f59e0b;
+      --jade: #34d399;
+      --text: #fff8eb;
+      --muted: #f3c6b6;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #5c0a14 0%, var(--bg) 72%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100dvh;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Join Screen (Red Packet / Angpow Style) */
+    #join-screen {
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: linear-gradient(180deg, #7f101b 0%, #4b070f 100%);
+      border: 2px solid rgba(255, 209, 102, 0.6);
+      border-radius: 22px;
+      padding: 24px;
+      position: relative;
+      box-shadow: 0 22px 55px rgba(0, 0, 0, 0.55), 0 0 36px rgba(251, 191, 36, 0.16);
+    }
+
+    .card-angpow {
+      position: absolute;
+      top: -18px;
+      right: 16px;
+      width: 52px;
+      height: auto;
+      transform: rotate(10deg);
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .brand-badge {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      filter: drop-shadow(0 2px 10px rgba(255, 209, 102, 0.35));
+    }
+
+    .brand-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 1.28rem;
+      margin: 0;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      color: #ffe8a3;
+    }
+
+    .subtitle {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #ffd166;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 209, 102, 0.35);
+      background: rgba(24, 3, 6, 0.72);
+      color: var(--text);
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      outline: none;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.24);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 15px 18px;
+      border: 1px solid #fff3c4;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ffe082, #f59e0b);
+      color: #450a0a;
+      font-family: var(--font-display);
+      font-size: 1.08rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: transform 80ms ease, filter 120ms ease;
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .error-msg {
+      margin-top: 12px;
+      color: #fecdd3;
+      font-size: 0.88rem;
+      min-height: 1.2em;
+      text-align: center;
+    }
+
+    /* Race Controller Screen */
+    #race-screen {
+      gap: 12px;
+    }
+
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid rgba(255, 209, 102, 0.25);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    .player-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .player-name {
+      font-weight: 800;
+      font-size: 1.05rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .room-pill {
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid rgba(255, 209, 102, 0.25);
+      color: var(--accent);
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid rgba(255, 209, 102, 0.22);
+      border-radius: 16px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .stat-value {
+      font-size: 1.65rem;
+      font-weight: 900;
+      margin-top: 2px;
+      color: #ffe8a3;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .motivation-banner {
+      background: rgba(245, 158, 11, 0.16);
+      border: 1px solid rgba(255, 209, 102, 0.42);
+      color: #fde68a;
+      border-radius: 14px;
+      padding: 10px 14px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .motivation-banner.on-screen {
+      background: rgba(16, 185, 129, 0.18);
+      border-color: rgba(52, 211, 153, 0.55);
+      color: #6ee7b7;
+    }
+
+    .tap-stage {
+      flex: 1;
+      display: flex;
+      position: relative;
+      min-height: 0;
+    }
+
+    .tap-pad {
+      width: 100%;
+      height: 100%;
+      border-radius: 26px;
+      border: 2px solid rgba(255, 209, 102, 0.35);
+      background: linear-gradient(165deg, #4b0912 0%, #260408 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 55ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 120ms ease, background 150ms ease;
+    }
+
+    .tap-pad.ready-race {
+      background: radial-gradient(circle at center, #dc2626 0%, #991b1b 52%, #450a0a 100%);
+      border-color: #ffd166;
+      box-shadow: inset 0 0 48px rgba(255, 209, 102, 0.28), 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .tap-pad.pulsing {
+      transform: scale(0.955);
+      border-color: #fff3c4;
+      box-shadow: inset 0 0 60px rgba(255, 224, 130, 0.45);
+    }
+
+    .tap-pad.disabled {
+      opacity: 0.92;
+    }
+
+    .tap-art {
+      max-width: 210px;
+      max-height: 110px;
+      width: auto;
+      height: auto;
+      pointer-events: none;
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.45));
+    }
+
+    .tap-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      color: #ffe8a3;
+    }
+
+    .tap-sub {
+      font-size: 0.92rem;
+      color: rgba(255, 248, 235, 0.85);
+      max-width: 280px;
+    }
+
+    .podium-list {
+      width: 100%;
+      max-width: 320px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .podium-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(255, 209, 102, 0.12);
+      border: 1px solid rgba(255, 209, 102, 0.22);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <!-- Onboarding Screen -->
+  <section id="join-screen" class="screen active">
+    <div class="card">
+      <img class="card-angpow" src="/images/cny/angpow-open.png" alt="" />
+      <div class="brand">
+        <div class="brand-badge">
+          <img src="/images/cny/goat-icon.png" alt="CNY Goat" />
+        </div>
+        <div>
+          <h1>奔羊赛 • GOAT RACE</h1>
+          <p class="subtitle" style="margin: 0;">CNY SPRINT</p>
+        </div>
+      </div>
+
+      <div style="height: 14px;"></div>
+
+      <form id="join-form" autocomplete="off">
+        <label for="room-input">房间号 ROOM</label>
+        <input
+          id="room-input"
+          type="text"
+          maxlength="4"
+          placeholder="AB12"
+          style="text-transform: uppercase;"
+        />
+
+        <label for="name-input">昵称 NICKNAME</label>
+        <input
+          id="name-input"
+          type="text"
+          maxlength="12"
+          placeholder="Name (max 12)"
+          required
+        />
+
+        <button type="submit" class="btn-primary">加入比赛 JOIN</button>
+      </form>
+
+      <div id="join-error" class="error-msg"></div>
+    </div>
+  </section>
+
+  <!-- Active Controller Screen -->
+  <section id="race-screen" class="screen">
+    <header class="hud-top">
+      <div class="player-meta">
+        <span id="player-color-dot" class="color-dot"></span>
+        <span id="player-name-label" class="player-name">GOAT</span>
+      </div>
+      <span id="room-badge" class="room-pill">----</span>
+    </header>
+
+    <div class="stats-bar">
+      <div class="stat-box">
+        <div class="stat-label">点击 TAPS</div>
+        <div id="tap-count" class="stat-value">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">排名 RANK</div>
+        <div id="standing-value" class="stat-value">—</div>
+      </div>
+    </div>
+
+    <div id="motivation-banner" class="motivation-banner">
+      准备就绪 READY
+    </div>
+
+    <div class="tap-stage">
+      <div id="tap-pad" class="tap-pad disabled" role="button" aria-label="Tap to gallop">
+        <img id="tap-art" class="tap-art" src="/images/cny/goat-happy.png" alt="" />
+        <div id="tap-title" class="tap-title">等待开赛 WAITING</div>
+        <div id="tap-sub" class="tap-sub"></div>
+        <div id="podium-list" class="podium-list" style="display: none;"></div>
+      </div>
+    </div>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/play.js"></script>
+</body>
+</html>
