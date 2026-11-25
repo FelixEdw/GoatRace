@@ -8,7 +8,7 @@ const QRCode = require('qrcode');
 
 //Game hardcode setting
 const PORT = Number(process.env.PORT) || 3000;
-const MAX_PLAYERS = 200;
+const MAX_PLAYERS = 20;
 const COUNTDOWN_SECONDS = 5;
 const DEFAULT_RACE_DURATION_SEC = 35;
 const MIN_RACE_DURATION_SEC = 30;

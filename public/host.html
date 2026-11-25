@@ -179,7 +179,7 @@
       flex-direction: column;
     }
 
-    /* Decorative Lanterns */
+    /* Decorative Lanterns (hidden during live track view so palace skyline shines) */
     .lantern-strip {
       position: absolute;
       top: -4px;
@@ -190,6 +190,10 @@
       padding: 0 36px;
       pointer-events: none;
       z-index: 14;
+    }
+
+    body.is-racing .lantern-strip {
+      display: none;
     }
 
     .lantern-img {
@@ -720,7 +724,7 @@
             </div>
 
             <div class="lobby-hero-row">
-              <img class="lobby-mascot" src="/images/cny/goat-happy.png" alt="Lucky Goat Mascot" />
+              <img class="lobby-mascot" src="/images/cny/goat-lion.png" alt="CNY Lion Goat" />
               <h2 class="lobby-headline">扫码开跑！<br />SCAN &amp; RACE!</h2>
             </div>
 
@@ -777,6 +781,7 @@
         <div class="podium-card">
           <div class="podium-header">
             <div class="podium-title-wrap">
+              <img src="/images/cny/caishen.png" alt="财神" />
               <img src="/images/cny/medal-first.png" alt="第一名" />
               <h2>荣耀榜 • PODIUM</h2>
             </div>

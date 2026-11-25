@@ -46,7 +46,28 @@
   }
 
   const goatSprite = loadImg('/images/goat-sprite.png');
-  const finishArchImg = loadImg('/images/cny/finish-arch.png');
+  const redTrackImg = loadImg('/images/cny/red-track.jpg');
+  const cloudImgs = [
+    loadImg('/images/cny/cloud-1.png'),
+    loadImg('/images/cny/cloud-2.png'),
+    loadImg('/images/cny/cloud-3.png'),
+  ];
+  const buildingImgs = [
+    loadImg('/images/cny/bldg-hall.png'),
+    loadImg('/images/cny/bldg-pagoda.png'),
+    loadImg('/images/cny/palace-gate.png'),
+    loadImg('/images/cny/bldg-moongate.png'),
+    loadImg('/images/cny/bldg-temple.png'),
+  ];
+  const caishenImg = loadImg('/images/cny/caishen.png');
+  const spectatorImgs = [
+    loadImg('/images/cny/spectator-1.png'),
+    loadImg('/images/cny/spectator-2.png'),
+    loadImg('/images/cny/spectator-3.png'),
+    loadImg('/images/cny/spectator-4.png'),
+    loadImg('/images/cny/spectator-5.png'),
+  ];
+  const paifangGateImg = loadImg('/images/cny/paifang-gate.png');
   const chargeBannerImg = loadImg('/images/cny/banner-charge.png');
   const coinIngotImg = loadImg('/images/cny/coin-ingot.png');
 
@@ -56,6 +77,8 @@
   let durationSec = 35;
   let lastFinalSecBeep = -1;
   let raceStartedAtPerf = 0;
+  let currentRemainingMs = 35000;
+  let parallaxOffset = 0;
 
   // Racer interpolation map: id -> visual state
   const racers = new Map();
@@ -313,6 +336,7 @@
     lobbyView.classList.toggle('active', state === 'LOBBY');
     countdownView.classList.toggle('active', state === 'COUNTDOWN');
     podiumView.classList.toggle('active', state === 'PODIUM');
+    document.body.classList.toggle('is-racing', state === 'RACING' || state === 'PHOTO_FINISH');
 
     startBtn.style.display = state === 'LOBBY' ? 'inline-block' : 'none';
     resetBtn.style.display = state !== 'LOBBY' ? 'inline-block' : 'none';
@@ -399,6 +423,7 @@
   }
 
   socket.on('race_tick', (data) => {
+    currentRemainingMs = data.remainingMs;
     const remSec = data.remainingMs / 1000;
     hudTimer.textContent = data.state === 'PHOTO_FINISH'
       ? '终点 FINISH'
@@ -517,35 +542,49 @@
     ctx.save();
     ctx.translate(x, y);
 
-    // Shadow on jade turf
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+    // Speed lines trailing behind moving goats
+    if (isMoving) {
+      ctx.strokeStyle = 'rgba(255, 248, 235, 0.55)';
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      for (let s = 0; s < 3; s++) {
+        const sy = -10 + s * 10;
+        const len = 14 + ((Math.sin(now * 0.02 + phase + s) + 1) * 8);
+        ctx.beginPath();
+        ctx.moveTo(-26, sy);
+        ctx.lineTo(-26 - len, sy);
+        ctx.stroke();
+      }
+    }
+
+    // Ground shadow on red track
+    ctx.fillStyle = 'rgba(69, 10, 10, 0.34)';
     ctx.beginPath();
-    ctx.ellipse(0, laneH * 0.28, 22, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, laneH * 0.34, 22, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Player color aura / silk ribbon ring underneath goat so each player is distinguishable
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
+    // Subtle colored ribbon ring under goat hooves
+    ctx.strokeStyle = rank === 1 ? '#ffd166' : color;
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.ellipse(0, laneH * 0.25, 24, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, laneH * 0.31, 24, 6.5, 0, 0, Math.PI * 2);
     ctx.stroke();
 
     if (goatSprite.complete && goatSprite.naturalWidth > 0) {
       const cellW = goatSprite.width / SPRITE_COLS;
       const cellH = goatSprite.height / SPRITE_ROWS;
       const frame = isMoving
-        ? Math.floor((now * 0.015 + phase * 2) % SPRITE_FRAMES)
+        ? Math.floor((now * 0.016 + phase * 2) % SPRITE_FRAMES)
         : 0;
       const col = frame % SPRITE_COLS;
       const row = Math.floor(frame / SPRITE_COLS);
 
-      // Slight crop inset (4px) prevents any edge bleed from neighboring cells
       const sx = col * cellW + 4;
       const sy = row * cellH + 4;
       const sw = cellW - 8;
       const sh = cellH - 8;
 
-      const drawH = Math.min(laneH * 1.18, 76);
+      const drawH = Math.max(54, Math.min(laneH * 1.48, 86));
       const drawW = drawH * (sw / sh);
       ctx.drawImage(
         goatSprite,
@@ -559,30 +598,47 @@
         drawH
       );
     } else {
-      // Vector fallback before image finishes loading
       ctx.fillStyle = '#fff8eb';
       ctx.beginPath();
       ctx.ellipse(0, bounce, 18, 11, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Rank badge & Name tag to the left of the goat
-    ctx.font = '800 13px system-ui, sans-serif';
-    const label = `#${rank} ${name} (${taps})`;
+    // Bright cream-white capsule nameplate with rank circle (high contrast on red track)
+    ctx.font = '800 12px system-ui, sans-serif';
+    const label = `${name} · ${taps}`;
     const textW = ctx.measureText(label).width;
-    const tagX = -38 - textW - 14;
-    ctx.fillStyle = 'rgba(43, 6, 11, 0.88)';
+    const badgeR = 9;
+    const pillW = badgeR * 2 + textW + 18;
+    const pillH = 22;
+    const tagX = -34 - pillW;
+
+    ctx.fillStyle = rank === 1 ? 'rgba(255, 248, 220, 0.97)' : 'rgba(255, 252, 248, 0.93)';
     ctx.beginPath();
-    ctx.roundRect(tagX, -11, textW + 14, 22, 7);
+    ctx.roundRect(tagX, -pillH / 2, pillW, pillH, pillH / 2);
     ctx.fill();
 
-    ctx.strokeStyle = rank === 1 ? '#ffd166' : color;
+    ctx.strokeStyle = rank === 1 ? '#f59e0b' : color;
     ctx.lineWidth = rank === 1 ? 2 : 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = rank === 1 ? '#ffe8a3' : '#fff8eb';
+    // Rank circle inside left end of capsule
+    const cx = tagX + 4 + badgeR;
+    ctx.fillStyle = rank === 1 ? '#d97706' : color;
+    ctx.beginPath();
+    ctx.arc(cx, 0, badgeR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 10px system-ui, sans-serif';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, tagX + 7, 0);
+    ctx.fillText(String(rank), cx, 0.5);
+
+    ctx.fillStyle = '#3b0810';
+    ctx.font = '800 12px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, cx + badgeR + 6, 0.5);
 
     ctx.restore();
   }
@@ -597,74 +653,198 @@
     const h = canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
 
-    const padTop = 26;
-    const padBottom = 26;
-    const trackLeft = 78;
-    const trackRight = w - 72;
+    const isMoving = gameState === 'RACING' || gameState === 'PHOTO_FINISH';
+    const scrollSpeed = isMoving ? 68 : 10;
+    parallaxOffset += scrollSpeed * dt;
+
+    // Compact 24% scenic courtyard at top, spacious 76% 10-lane red track below
+    const trackTop = Math.max(120, Math.round(h * 0.24));
+    const trackBottom = h - 4;
+    const trackLeft = Math.max(155, Math.round(w * 0.145));
+    const trackRight = w - 82;
     const trackWidth = Math.max(200, trackRight - trackLeft);
     const laneCount = 10;
-    const laneH = (h - padTop - padBottom) / laneCount;
+    const laneH = (trackBottom - trackTop) / laneCount;
 
-    // Crimson & gold decorative top/bottom rails
-    ctx.fillStyle = '#5c0a14';
-    ctx.fillRect(0, 0, w, padTop);
-    ctx.fillRect(0, h - padBottom, w, padBottom);
-    ctx.fillStyle = '#ffd166';
-    ctx.fillRect(0, padTop - 3, w, 3);
-    ctx.fillRect(0, h - padBottom, w, 3);
+    // 1. Warm Golden CNY Sunrise Sky
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, trackTop);
+    skyGrad.addColorStop(0, '#f59e0b');
+    skyGrad.addColorStop(0.55, '#fbbf24');
+    skyGrad.addColorStop(1, '#fed7aa');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, trackTop);
 
-    // 1. Draw 10 Auspicious Jade Turf Lanes
-    for (let i = 0; i < laneCount; i++) {
-      const y = padTop + i * laneH;
-      ctx.fillStyle = i % 2 === 0 ? '#0d3f2f' : '#124e3b';
-      ctx.fillRect(0, y, w, laneH);
+    // 2. Drifting Golden Auspicious Clouds in Sky
+    const cloudConfigs = [
+      { img: cloudImgs[0], speed: 14, yRatio: 0.04, width: 140, offset: 0.08 },
+      { img: cloudImgs[1], speed: 10, yRatio: 0.12, width: 125, offset: 0.45 },
+      { img: cloudImgs[2], speed: 18, yRatio: 0.03, width: 135, offset: 0.78 },
+    ];
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.65;
+    cloudConfigs.forEach((c) => {
+      if (c.img && c.img.complete && c.img.naturalWidth > 0) {
+        const ch = c.width * (c.img.naturalHeight / c.img.naturalWidth);
+        const span = w + c.width * 2;
+        const cx = ((c.offset * span + (now / 1000) * c.speed) % span) - c.width;
+        ctx.drawImage(c.img, cx, trackTop * c.yRatio, c.width, ch);
+      }
+    });
+    ctx.restore();
 
-      // Golden lane divider
-      ctx.strokeStyle = 'rgba(255, 209, 102, 0.2)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
+    // 3. Courtyard Walkway Floor + Scrolling Palace Skyline (compact & proportional)
+    const walkwayH = Math.round(trackTop * 0.22);
+    const walkwayY = trackTop - walkwayH;
+    ctx.fillStyle = '#c83428';
+    ctx.fillRect(0, walkwayY, w, walkwayH);
+    ctx.fillStyle = 'rgba(255, 224, 150, 0.35)';
+    ctx.fillRect(0, walkwayY, w, 2);
 
-      // Gold lane number badge on left
-      ctx.fillStyle = 'rgba(255, 209, 102, 0.72)';
-      ctx.font = '900 14px system-ui, sans-serif';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(String(i + 1), 22, y + laneH / 2);
+    const bldgBaselineY = walkwayY + 4;
+    const bldgTargetH = Math.round(trackTop * 0.78);
+    const tileSlotW = 240;
+    const tileLoopW = tileSlotW * buildingImgs.length;
+    const startTile = Math.floor((parallaxOffset * 0.35) / tileSlotW) - 1;
+    const visibleCount = Math.ceil(w / tileSlotW) + 3;
+
+    for (let t = 0; t < visibleCount; t++) {
+      const idx = ((startTile + t) % buildingImgs.length + buildingImgs.length) % buildingImgs.length;
+      const bImg = buildingImgs[idx];
+      const bx = (startTile + t) * tileSlotW - (parallaxOffset * 0.35);
+      if (bImg && bImg.complete && bImg.naturalWidth > 0) {
+        const bw = bldgTargetH * (bImg.naturalWidth / bImg.naturalHeight);
+        ctx.drawImage(bImg, bx + (tileSlotW - bw) / 2, bldgBaselineY - bldgTargetH, bw, bldgTargetH);
+      }
     }
 
-    // Gold dashed distance markers (25%, 50%, 75%)
+    // 4. Animated Compact Cheering Spectators & Cai Shen along Courtyard Walkway
+    const specBaseY = trackTop - 5;
+    const specH = Math.max(36, Math.min(trackTop * 0.44, 58));
+    const caishenH = Math.max(44, Math.min(trackTop * 0.54, 70));
+
+    // Cai Shen cheering near center-right courtyard with soft golden glow
+    if (caishenImg.complete && caishenImg.naturalWidth > 0) {
+      const csX = w * 0.72 + Math.sin(now * 0.0012) * 14;
+      const csBob = Math.abs(Math.sin(now * 0.0055)) * 4;
+      const csW = caishenH * (caishenImg.naturalWidth / caishenImg.naturalHeight);
+
+      const glow = ctx.createRadialGradient(csX, specBaseY - caishenH * 0.45, 4, csX, specBaseY - caishenH * 0.45, caishenH * 0.75);
+      glow.addColorStop(0, 'rgba(255, 224, 130, 0.5)');
+      glow.addColorStop(1, 'rgba(255, 224, 130, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(csX, specBaseY - caishenH * 0.45, caishenH * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.drawImage(caishenImg, csX - csW / 2, specBaseY - caishenH - csBob, csW, caishenH);
+    }
+
+    // 5 animated cheering CNY goats hopping, swaying, and strolling gently along the courtyard
+    const specAnchors = [0.16, 0.30, 0.44, 0.58, 0.85];
+    spectatorImgs.forEach((sImg, i) => {
+      if (!sImg.complete || !sImg.naturalWidth) return;
+      const phase = i * 1.35;
+      const roam = Math.sin(now * 0.0015 + phase) * 16;
+      const hop = Math.abs(Math.sin(now * (isMoving ? 0.009 : 0.0055) + phase)) * (isMoving ? 7 : 3.5);
+      const tilt = Math.sin(now * (isMoving ? 0.008 : 0.004) + phase) * 0.07;
+
+      const sx = w * specAnchors[i] + roam;
+      const sy = specBaseY - hop;
+      const sw = specH * (sImg.naturalWidth / sImg.naturalHeight);
+
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(tilt);
+      ctx.drawImage(sImg, -sw / 2, -specH, sw, specH);
+      ctx.restore();
+    });
+
+    // 5. Full-Width 10-Lane Red Stadium Track
+    if (redTrackImg.complete && redTrackImg.naturalWidth > 0) {
+      ctx.drawImage(redTrackImg, 0, trackTop, w, trackBottom - trackTop);
+    } else {
+      for (let i = 0; i < laneCount; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#c83428' : '#d63e30';
+        ctx.fillRect(0, trackTop + i * laneH, w, laneH);
+        ctx.fillStyle = 'rgba(255, 224, 150, 0.5)';
+        ctx.fillRect(0, trackTop + i * laneH, w, 1.5);
+      }
+    }
+
+    // Subtle moving speed ticks along red track when racing
+    if (isMoving) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 232, 163, 0.28)';
+      const dashSpacing = 180;
+      const dashOff = (parallaxOffset * 2.2) % dashSpacing;
+      for (let i = 0; i < laneCount; i++) {
+        const ly = trackTop + (i + 0.5) * laneH;
+        for (let dx = trackLeft - dashOff; dx < trackRight; dx += dashSpacing) {
+          if (dx > trackLeft) {
+            ctx.fillRect(dx, ly - 1, 18, 2);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    // 6. Lane Numbers & Subtle Distance Guides (25%, 50%, 75%)
     ctx.save();
+    ctx.font = '900 13px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < laneCount; i++) {
+      const ly = trackTop + (i + 0.5) * laneH;
+      ctx.fillStyle = 'rgba(69, 10, 10, 0.6)';
+      ctx.beginPath();
+      ctx.arc(28, ly, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffe8a3';
+      ctx.fillText(String(i + 1), 28, ly + 0.5);
+    }
+
     ctx.setLineDash([6, 8]);
-    ctx.strokeStyle = 'rgba(255, 209, 102, 0.25)';
+    ctx.strokeStyle = 'rgba(255, 240, 200, 0.24)';
     ctx.lineWidth = 1.5;
     [0.25, 0.5, 0.75].forEach((pct) => {
       const gx = trackLeft + trackWidth * pct;
       ctx.beginPath();
-      ctx.moveTo(gx, padTop);
-      ctx.lineTo(gx, h - padBottom);
+      ctx.moveTo(gx, trackTop + 4);
+      ctx.lineTo(gx, trackBottom);
       ctx.stroke();
     });
     ctx.restore();
 
-    // Festive Crimson & Gold Checkered Finish Line + Golden Cloud Arch
+    // 7. Giant Translucent Final-5s Countdown Watermark on Track
+    if (gameState === 'RACING' && currentRemainingMs > 0 && currentRemainingMs <= 5000) {
+      const secText = String(Math.ceil(currentRemainingMs / 1000));
+      ctx.save();
+      ctx.font = `900 ${Math.round((trackBottom - trackTop) * 0.45)}px system-ui, sans-serif`;
+      ctx.fillStyle = 'rgba(255, 248, 235, 0.26)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(secText, trackLeft + trackWidth * 0.5, trackTop + (trackBottom - trackTop) * 0.52);
+      ctx.restore();
+    }
+
+    // 8. Festive Gold & Crimson Checkered Finish Line + Ceremonial Paifang Gate
     const sq = 11;
-    const rows = Math.ceil((h - padTop - padBottom) / sq);
+    const rows = Math.ceil((trackBottom - trackTop) / sq);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < 2; c++) {
-        ctx.fillStyle = (r + c) % 2 === 0 ? '#ffd166' : '#991b1b';
-        ctx.fillRect(trackRight + c * sq, padTop + r * sq, sq, sq);
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#ffd166' : '#7f1d1d';
+        ctx.fillRect(trackRight + c * sq, trackTop + r * sq, sq, sq);
       }
     }
 
-    if (finishArchImg.complete && finishArchImg.naturalWidth > 0) {
-      const archW = 108;
-      const archH = archW * (finishArchImg.naturalHeight / finishArchImg.naturalWidth);
-      ctx.drawImage(finishArchImg, trackRight - archW * 0.42, padTop - 6, archW, archH);
+    if (paifangGateImg.complete && paifangGateImg.naturalWidth > 0) {
+      const gateH = Math.min(trackTop * 0.86, 108);
+      const gateW = gateH * (paifangGateImg.naturalWidth / paifangGateImg.naturalHeight);
+      ctx.drawImage(paifangGateImg, trackRight - gateW * 0.45, trackTop - gateH + 6, gateW, gateH);
     }
 
-    // 2. Update & Draw Golden Sparkle / Coin / Dust Particles
+    // 9. Update & Draw Golden Sparkle / Coin / Dust Particles
     for (let i = dustParticles.length - 1; i >= 0; i--) {
       const p = dustParticles[i];
       p.x += p.vx * dt;
@@ -677,49 +857,50 @@
       const alpha = Math.max(0, p.life / p.maxLife);
       if (p.coin && coinIngotImg.complete && coinIngotImg.naturalWidth > 0) {
         ctx.save();
-        ctx.globalAlpha = alpha * 0.9;
+        ctx.globalAlpha = alpha * 0.92;
         const cs = p.size * 3.2;
         ctx.drawImage(coinIngotImg, p.x - cs / 2, p.y - cs / 2, cs, cs);
         ctx.restore();
       } else {
         ctx.fillStyle = p.gold
-          ? `rgba(255, 209, 102, ${alpha * 0.75})`
-          : `rgba(244, 214, 166, ${alpha * 0.5})`;
+          ? `rgba(255, 224, 130, ${alpha * 0.85})`
+          : `rgba(255, 245, 225, ${alpha * 0.55})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // 3. Interpolate & Draw Top 10 Goats
+    // 10. Interpolate & Draw Top 10 Goats (sorted by Y for clean 2.5D overlap)
     const xLerpFactor = 1 - Math.exp(-10 * dt);
     const yAnimDurationMs = 300;
-    const isMoving = gameState === 'RACING' || gameState === 'PHOTO_FINISH';
 
-    for (const racer of racers.values()) {
+    const drawOrder = Array.from(racers.values());
+    for (const racer of drawOrder) {
       racer.x += (racer.targetX - racer.x) * xLerpFactor;
-
       const yProgress = Math.min(1, (now - racer.yAnimStart) / yAnimDurationMs);
       const yEase = 1 - Math.pow(1 - yProgress, 3);
       racer.y = racer.fromY + (racer.toY - racer.fromY) * yEase;
+    }
+    drawOrder.sort((a, b) => a.y - b.y);
 
+    for (const racer of drawOrder) {
       const px = trackLeft + racer.x * trackWidth;
-      const py = padTop + (racer.y + 0.5) * laneH;
-      const bounce = isMoving ? Math.sin(now * 0.022 + racer.phase) * 3 : 0;
+      const py = trackTop + (racer.y + 0.5) * laneH;
+      const bounce = isMoving ? Math.sin(now * 0.022 + racer.phase) * 2.8 : 0;
 
-      // Trailing lucky gold coins, sparkles & hoof dust behind top-ranking goats
       if (isMoving && racer.rank <= 5 && now - racer.lastDustAt > 55) {
         racer.lastDustAt = now;
         dustParticles.push({
           x: px - 24,
-          y: py + laneH * 0.18,
-          vx: -50 - Math.random() * 40,
-          vy: (Math.random() - 0.5) * 18,
-          size: 2 + Math.random() * 3.5,
-          life: 0.48,
-          maxLife: 0.48,
-          gold: racer.rank === 1 || Math.random() < 0.45,
-          coin: racer.rank === 1 && Math.random() < 0.25,
+          y: py + laneH * 0.22,
+          vx: -55 - Math.random() * 40,
+          vy: (Math.random() - 0.5) * 16,
+          size: 2 + Math.random() * 3.2,
+          life: 0.45,
+          maxLife: 0.45,
+          gold: racer.rank === 1 || Math.random() < 0.55,
+          coin: racer.rank === 1 && Math.random() < 0.22,
         });
       }
 
@@ -738,7 +919,7 @@
       );
     }
 
-    // 4. "冲啊!" Start Charge Banner Burst for first 2.2s of RACING
+    // 11. "冲啊!" Start Charge Banner Burst for first 2.2s of RACING
     if (gameState === 'RACING' && chargeBannerImg.complete && chargeBannerImg.naturalWidth > 0) {
       const sinceStart = now - raceStartedAtPerf;
       if (sinceStart >= 0 && sinceStart < 2200) {
@@ -748,7 +929,7 @@
         const bh = bw * (chargeBannerImg.naturalHeight / chargeBannerImg.naturalWidth);
         ctx.save();
         ctx.globalAlpha = fade;
-        ctx.drawImage(chargeBannerImg, (w - bw) / 2, padTop + 14, bw, bh);
+        ctx.drawImage(chargeBannerImg, (w - bw) / 2, trackTop + 12, bw, bh);
         ctx.restore();
       }
     }
